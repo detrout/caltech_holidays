@@ -1,0 +1,12 @@
+* Introduction
+
+I was tired of reading the Caltech HR's site for knowing when we have holidays.
+
+This program reads the page and writes out a iCalendar file.
+
+It's probably not useful unless you work at Caltech.
+
+* Usage
+
+python3 caltech_holidays.py
+scp caltech_holidays.ics webserver:
