@@ -68,11 +68,13 @@ def make_parser():
 def display(cal):
     return cal.to_ical().replace(b'\r\n', b'\n').strip()
 
+
 def parse_last_modified(header):
     if header is None:
         return datetime.now()
 
     return datetime.strptime(header, '%a, %d %b %Y %H:%M:%S %Z')
+
 
 def make_event(date, description, dtstamp):
     event = Event()
