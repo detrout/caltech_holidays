@@ -14,21 +14,28 @@ def main(cmdline=None):
     ical_url = 'https://hr.caltech.edu/perks/time_away/holiday_observances'
     request = urlopen(ical_url)
     if request.status != 200:
-        print('Error opening page: {}'.format(request.status))
+        print('Error opening page: {}'.format(request.status), file=sys.stderr)
         return 1
 
     dtstamp = parse_last_modified(request.headers['Last-Modified'])
-    tree = parse(request)
+    if dtstamp is None:
+        print('No Last-Modified header', file=sys.stderr)
+        return 1
 
+    tree = parse(request)
     tables = tree.xpath('//section[@id="main"]/table')
+
     cal = Calendar()
     cal.add('version', '2.0')
-    cal.add('prodid', 'ghic.org/caltech_holiday.py')
+    cal.add('prodid', 'ghic.org:caltech_holiday.py')
     
     for t in tables:
         p = t.getprevious()
         header = p.xpath('strong/span')[0].text
-        assert header.startswith('Caltech Holiday Observances for ')
+        if not header.startswith('Caltech Holiday Observances for '):
+            print('Unrecongnized table title', file=sys.stderr)
+            return 1
+
         year = header[-4:]
         for row in t.xpath('tbody/tr'):
             record = row.getchildren()
