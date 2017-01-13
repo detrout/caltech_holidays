@@ -8,5 +8,7 @@ It's probably not useful unless you work at Caltech.
 
 * Usage
 
+#+BEGIN_EXAMPLE
 python3 caltech_holidays.py
 scp caltech_holidays.ics webserver:
+#+END_EXAMPLE
