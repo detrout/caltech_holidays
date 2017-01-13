@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import argparse
 import sys
 import hashlib
 from icalendar import Calendar, Event
@@ -7,7 +8,9 @@ from datetime import datetime, timedelta
 from lxml.html import parse
 from urllib.request import urlopen
 
-def main():
+def main(cmdline=None):
+    parser = make_parser()
+    args = make_parser(cmdline)
     ical_url = 'https://hr.caltech.edu/perks/time_away/holiday_observances'
     request = urlopen(ical_url)
     if request.status != 200:
@@ -36,10 +39,24 @@ def main():
 
                 cal.add_component(make_event(date, description, dtstamp))
 
-    with open('caltech_holidays.ics', 'wb') as outstream:
-        outstream.write(cal.to_ical())
+    if args.icalendar:
+        with open(args.icalendar, 'wb') as outstream:
+            outstream.write(cal.to_ical())
+
+    if args.display:
+        print(display(cal))
         
     return 0
+
+
+def make_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--icalendar', default='caltech_holidays.ics'
+                        help='Name to write icalendar file to')
+    parser.add_argument('--display', default=False,
+                        help='Print calendar')
+    return parser
+
 
 def display(cal):
     return cal.to_ical().replace(b'\r\n', b'\n').strip()
