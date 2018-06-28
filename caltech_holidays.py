@@ -68,7 +68,7 @@ def main(cmdline=None):
 
     if args.display:
         print(display(cal))
-        
+
     return 0
 
 
