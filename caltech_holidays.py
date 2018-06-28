@@ -7,20 +7,31 @@ from icalendar import Calendar, Event
 from datetime import datetime, timedelta
 from lxml.html import parse
 from urllib.request import urlopen
+import logging
+
+LOGGER = logging.getLogger('Holidays')
+
 
 def main(cmdline=None):
     parser = make_parser()
     args = parser.parse_args(cmdline)
 
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    elif args.verbose:
+        logging.basicConfig(level=logging.INFO)
+    else:
+        logging.basicConfig(level=logging.WARN)
+
     ical_url = 'https://hr.caltech.edu/perks/time_away/holiday_observances'
     request = urlopen(ical_url)
     if request.status != 200:
-        print('Error opening page: {}'.format(request.status), file=sys.stderr)
+        LOGGER.error('Error opening page: {}'.format(request.status))
         return 1
 
     dtstamp = parse_last_modified(request.headers['Last-Modified'])
     if dtstamp is None:
-        print('No Last-Modified header', file=sys.stderr)
+        LOGGER.error('No Last-Modified header')
         return 1
 
     tree = parse(request)
@@ -29,20 +40,24 @@ def main(cmdline=None):
     cal = Calendar()
     cal.add('version', '2.0')
     cal.add('prodid', 'ghic.org:caltech_holiday.py')
-    
+
+    LOGGER.debug('Found {} table tags'.format(len(tables)))
     for t in tables:
         p = t.getprevious()
         header = p.xpath('strong/span')[0].text
         if not header.startswith('Caltech Holiday Observances for '):
-            print('Unrecongnized table title', file=sys.stderr)
+            LOGGER.error('Unrecognized table title: %s', header)
             return 1
 
         year = header[-4:]
+        LOGGER.debug('year: %s', year)
         for row in t.xpath('tbody/tr'):
             record = row.getchildren()
             day = record[2].text
+            LOGGER.debug('day: %s', day)
             if day != '--':
                 description = record[3].text
+                LOGGER.debug('description: %s', description)
                 date = datetime.strptime(year + ' ' + day, '%Y %B %d').date()
 
                 cal.add_component(make_event(date, description, dtstamp))
@@ -63,6 +78,10 @@ def make_parser():
                         help='Name to write icalendar file to')
     parser.add_argument('--display', default=False, action='store_true',
                         help='Print calendar')
+    parser.add_argument('-v', '--verbose', default=False, action='store_true',
+                        help='enable INFO level log messages')
+    parser.add_argument('-vv', '--debug', default=False, action='store_true',
+                        help='enable DEBUG level log messages')
     return parser
 
 
