@@ -55,7 +55,7 @@ def main(cmdline=None):
             record = row.getchildren()
             day = record[2].text_content().strip()
             LOGGER.debug('day: %s', day)
-            if day != '--':
+            if not day.startswith('-'):
                 description = record[3].text_content().strip()
                 LOGGER.debug('description: %s', description)
                 date = datetime.strptime(year + ' ' + day, '%Y %B %d').date()
