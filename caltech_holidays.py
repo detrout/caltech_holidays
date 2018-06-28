@@ -61,7 +61,7 @@ def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--icalendar', default='caltech_holidays.ics'
                         help='Name to write icalendar file to')
-    parser.add_argument('--display', default=False,
+    parser.add_argument('--display', default=False, action='store_true',
                         help='Print calendar')
     return parser
 
