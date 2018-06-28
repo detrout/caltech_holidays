@@ -10,7 +10,8 @@ from urllib.request import urlopen
 
 def main(cmdline=None):
     parser = make_parser()
-    args = make_parser(cmdline)
+    args = parser.parse_args(cmdline)
+
     ical_url = 'https://hr.caltech.edu/perks/time_away/holiday_observances'
     request = urlopen(ical_url)
     if request.status != 200:
