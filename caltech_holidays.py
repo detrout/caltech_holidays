@@ -44,7 +44,7 @@ def main(cmdline=None):
     LOGGER.debug('Found {} table tags'.format(len(tables)))
     for t in tables:
         p = t.getprevious()
-        header = p.text_content()
+        header = p.text_content().strip()
         if not header.startswith('Caltech Holiday Observances for '):
             LOGGER.error('Unrecognized table title: %s', header)
             return 1
