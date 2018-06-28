@@ -44,7 +44,7 @@ def main(cmdline=None):
     LOGGER.debug('Found {} table tags'.format(len(tables)))
     for t in tables:
         p = t.getprevious()
-        header = p.xpath('strong/span')[0].text
+        header = p.text_content()
         if not header.startswith('Caltech Holiday Observances for '):
             LOGGER.error('Unrecognized table title: %s', header)
             return 1
@@ -53,10 +53,10 @@ def main(cmdline=None):
         LOGGER.debug('year: %s', year)
         for row in t.xpath('tbody/tr'):
             record = row.getchildren()
-            day = record[2].text
+            day = record[2].text_content().strip()
             LOGGER.debug('day: %s', day)
             if day != '--':
-                description = record[3].text
+                description = record[3].text_content().strip()
                 LOGGER.debug('description: %s', description)
                 date = datetime.strptime(year + ' ' + day, '%Y %B %d').date()
 
