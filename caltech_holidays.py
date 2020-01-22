@@ -23,10 +23,8 @@ def main(cmdline=None):
     else:
         logging.basicConfig(level=logging.WARN)
 
-    ical_url = 'https://hr.caltech.edu/perks/time_away/holiday_observances'
-    request = urlopen(ical_url)
-    if request.status != 200:
-        LOGGER.error('Error opening page: {}'.format(request.status))
+    request = request_holiday_page()
+    if request is None:
         return 1
 
     dtstamp = parse_last_modified(request.headers['Last-Modified'])
@@ -35,44 +33,86 @@ def main(cmdline=None):
         return 1
 
     tree = parse(request)
-    tables = tree.xpath('//section[@id="main"]/table')
 
     cal = Calendar()
     cal.add('version', '2.0')
     cal.add('prodid', 'ghic.org:caltech_holiday.py')
 
-    LOGGER.debug('Found {} table tags'.format(len(tables)))
-    for t in tables:
-        p = t.getprevious()
-        header = p.text_content().strip()
-        if not header.startswith('Caltech Holiday Observances for '):
-            LOGGER.error('Unrecognized table title: %s', header)
-            return 1
-
-        year = header[-4:]
-        LOGGER.debug('year: %s', year)
-        for row in t.xpath('tbody/tr'):
-            record = row.getchildren()
-            if len(record) == 4:
-                day = record[2].text_content().strip()
-                LOGGER.debug('day: %s', day)
-                if not day.startswith('-'):
-                    description = record[3].text_content().strip()
-                    LOGGER.debug('description: %s', description)
-                    date = datetime.strptime(year + ' ' + day, '%Y %B %d').date()
-
-                    cal.add_component(make_event(date, description, dtstamp))
-            else:
-                LOGGER.info('unrecognized calendar line: {}'.format(row.text_content))
+    event_count = 0
+    for date, description in get_calendar_entries(tree):
+        event_count += 1
+        cal.add_component(make_event(date, description, dtstamp))
 
     if args.icalendar:
         with open(args.icalendar, 'wb') as outstream:
             outstream.write(cal.to_ical())
 
     if args.display:
-        print(display(cal))
+        print(display(cal).decode('utf-8'))
+
+    if event_count == 0:
+        LOGGER.warn('No entries found')
+        return 1
 
     return 0
+
+
+def request_holiday_page():
+    ical_url = 'https://hr.caltech.edu/perks/time_away/holiday_observances'
+    request = urlopen(ical_url)
+    if request.status != 200:
+        LOGGER.error('Error opening page: {}'.format(request.status))
+        return None
+
+    return request
+
+
+def get_calendar_entries(tree):
+    headers = tree.xpath('//h3')
+    LOGGER.debug('Found {} header tags'.format(len(headers)))
+    for h in headers:
+        year = get_year_from_header(h)
+        LOGGER.debug('year: %s', year)
+        if year is None:
+            continue
+
+        table = get_table_from_header(h)
+        yield from get_table_entries(year, table)
+
+
+def get_year_from_header(header):
+    header = header.text_content().strip()
+    if not header.startswith('Caltech Holiday Observances for '):
+        LOGGER.error('Unrecognized table title: %s', header)
+        return None
+
+    return header[-4:]
+
+
+def get_table_from_header(header):
+    section = header.getparent()
+    node = section.getnext()
+    while node is not None:
+        if node.attrib.get('class') == 'block-TableBlock':
+            tables = node.xpath('*/table')
+            assert len(tables) == 1, 'page layout changed'
+            return tables[0]
+        node = node.getnext()
+
+
+def get_table_entries(year, table):
+    for row in table.xpath('tbody/tr'):
+        record = row.getchildren()
+        if len(record) == 4:
+            day = record[2].text_content().strip()
+            LOGGER.debug('day: %s', day)
+            if not day.startswith('-'):
+                description = record[3].text_content().strip()
+                LOGGER.debug('description: %s', description)
+                date = datetime.strptime(year + ' ' + day, '%Y %B %d').date()
+                yield (date, description)
+            else:
+                LOGGER.info('unrecognized calendar line: {}'.format(row.text_content))
 
 
 def make_parser():
