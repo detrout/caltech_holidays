@@ -115,7 +115,11 @@ def get_table_entries(year, table):
             if not day.startswith('-'):
                 description = record[3].text_content().strip()
                 LOGGER.debug('description: %s', description)
-                date = datetime.strptime(year + ' ' + day, '%Y %B %d').date()
+                try:
+                    # in case there's an overriden year
+                    date = datetime.strptime(day, "%B %d, %Y").date()
+                except ValueError:
+                    date = datetime.strptime(year + ' ' + day, '%Y %B %d').date()
                 yield (date, description)
             else:
                 LOGGER.info('unrecognized calendar line: {}'.format(row.text_content))
