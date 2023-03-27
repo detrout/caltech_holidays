@@ -6,7 +6,7 @@ import hashlib
 from icalendar import Calendar, Event
 from datetime import datetime, timedelta
 from lxml.html import parse
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 from urllib.error import HTTPError
 import logging
 
@@ -64,13 +64,21 @@ def main(cmdline=None):
 
 
 def request_holiday_page():
-    ical_url = 'https://hr.caltech.edu/perks/time_away/holiday_observances'
-    request = urlopen(ical_url)
-    if request.status != 200:
+    url = "https://hr.caltech.edu/resources/holiday-observances"
+    try:
+        request = Request(url)
+        request.add_header("user-agent", "caltech_holidays")
+        response = urlopen(request)
+    except HTTPError as e:
+        LOGGER.error("HTTP Request error: {} {}".format(e.code, e.reason))
+        print(e.headers)
+        return None
+
+    if response.status != 200:
         LOGGER.error('Error opening page: {}'.format(request.status))
         return None
 
-    return request
+    return response
 
 
 def get_calendar_entries(tree):
