@@ -7,10 +7,15 @@ from icalendar import Calendar, Event
 from datetime import datetime, timedelta
 from lxml.html import parse
 from urllib.request import urlopen
+from urllib.error import HTTPError
 import logging
 
 LOGGER = logging.getLogger('Holidays')
 
+ERROR_GET_PAGE_FAILED = 1
+ERROR_PARSE_FAILED = 2
+ERROR_NO_EVENTS = 3
+ERROR_UNKNOWN = 255
 
 def main(cmdline=None):
     parser = make_parser()
@@ -25,12 +30,13 @@ def main(cmdline=None):
 
     request = request_holiday_page()
     if request is None:
-        return 1
+        LOGGER.error("Downloading holiday page failed")
+        return ERROR_GET_PAGE_FAILED
 
     dtstamp = parse_last_modified(request.headers['Last-Modified'])
     if dtstamp is None:
         LOGGER.error('No Last-Modified header')
-        return 1
+        return ERROR_PARSE_FAILED
 
     tree = parse(request)
 
@@ -52,7 +58,7 @@ def main(cmdline=None):
 
     if event_count == 0:
         LOGGER.warn('No entries found')
-        return 1
+        return ERROR_NO_EVENTS
 
     return 0
 
@@ -151,8 +157,10 @@ def make_event(date, description, dtstamp):
     event.add('summary', description)
     return event
 
-    
 
 if __name__ == '__main__':
-    sys.exit(main())
-        
+    try:
+        main()
+    except Exception as e:
+        LOGGER.error("Unexpected error: {}".format(e))
+        sys.exit(ERROR_UNKNOWN)
