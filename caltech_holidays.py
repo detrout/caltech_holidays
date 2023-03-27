@@ -145,13 +145,13 @@ def parse_last_modified(header):
     return datetime.strptime(header, '%a, %d %b %Y %H:%M:%S %Z')
 
 
-def make_event(date, description, dtstamp):
+def make_event(event_date, description, dtstamp):
     event = Event()
-    tomorrow = date + timedelta(days=1)
-    body = date.isoformat() + dtstamp.isoformat() + description
+    tomorrow = event_date + timedelta(days=1)
+    body = event_date.isoformat() + dtstamp.isoformat() + description
     uid = hashlib.sha256(body.encode('utf-8'))
     event.add('uid', uid.hexdigest())
-    event.add('dtstart', date)
+    event.add('dtstart', event_date)
     event.add('dtend', tomorrow)
     event.add('dtstamp', dtstamp)
     event.add('summary', description)
