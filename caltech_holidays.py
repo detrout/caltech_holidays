@@ -187,10 +187,12 @@ def make_event(event_date, description, dtstamp):
     event.add('summary', description)
     return event
 
+
 def make_uid(event_date, description):
     body = event_date.isoformat() + description
     uid = hashlib.sha256(body.encode('utf-8'))
     return uid.hexdigest()
+
 
 def get_event_uid(event):
     stored_uid = str(event["UID"])
@@ -206,6 +208,7 @@ def get_event_uid(event):
 
     return new_uid
 
+
 def get_known_event_uids(cal):
     seen = set()
 
@@ -215,12 +218,14 @@ def get_known_event_uids(cal):
 
     return seen
 
+
 def add_unique_event(cal, event):
     known_uids = get_known_event_uids(cal)
     uid = get_event_uid(event)
 
     if uid not in known_uids:
         cal.add_component(event)
+
 
 if __name__ == '__main__':
     try:
