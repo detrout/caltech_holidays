@@ -1,10 +1,12 @@
 #!/usr/bin/python3
 
 import argparse
+from collections import namedtuple
+from datetime import datetime, timedelta
 import sys
 import hashlib
 from icalendar import Calendar, Event
-from datetime import datetime, timedelta
+from pathlib import Path
 from lxml.html import parse
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError
@@ -16,6 +18,8 @@ ERROR_GET_PAGE_FAILED = 1
 ERROR_PARSE_FAILED = 2
 ERROR_NO_EVENTS = 3
 ERROR_UNKNOWN = 255
+
+Holiday = namedtuple("Holiday", ["date", "description"])
 
 def main(cmdline=None):
     parser = make_parser()
@@ -40,14 +44,12 @@ def main(cmdline=None):
 
     tree = parse(request)
 
-    cal = Calendar()
-    cal.add('version', '2.0')
-    cal.add('prodid', 'ghic.org:caltech_holiday.py')
+    cal = create_or_load_icalendar(args.icalendar)
 
     event_count = 0
     for date, description in get_calendar_entries(tree):
         event_count += 1
-        cal.add_component(make_event(date, description, dtstamp))
+        add_unique_event(cal, make_event(date, description, dtstamp))
 
     if args.icalendar:
         with open(args.icalendar, 'wb') as outstream:
@@ -128,10 +130,24 @@ def get_table_entries(year, table):
                     date = datetime.strptime(day, "%B %d, %Y").date()
                 except ValueError:
                     date = datetime.strptime(year + ' ' + day, '%Y %B %d').date()
-                yield (date, description)
+                yield Holiday(date, description)
             else:
                 LOGGER.info('unrecognized calendar line: {}'.format(row.text_content))
 
+def create_or_load_icalendar(filename=None):
+    if filename is not None:
+        filename = Path(filename)
+        if filename.exists():
+            with filename.open() as stream:
+                cal = Calendar.from_ical(stream.read())
+                return cal
+
+    # otherwise create a new calendar
+    cal = Calendar()
+    cal.add('version', '2.0')
+    cal.add('prodid', 'ghic.org:caltech_holiday.py')
+
+    return cal
 
 def make_parser():
     parser = argparse.ArgumentParser()
@@ -160,15 +176,48 @@ def parse_last_modified(header):
 def make_event(event_date, description, dtstamp):
     event = Event()
     tomorrow = event_date + timedelta(days=1)
-    body = event_date.isoformat() + dtstamp.isoformat() + description
-    uid = hashlib.sha256(body.encode('utf-8'))
-    event.add('uid', uid.hexdigest())
+    uid = make_uid(event_date, description)
+    event.add('uid', uid)
     event.add('dtstart', event_date)
     event.add('dtend', tomorrow)
     event.add('dtstamp', dtstamp)
     event.add('summary', description)
     return event
 
+def make_uid(event_date, description):
+    body = event_date.isoformat() + description
+    uid = hashlib.sha256(body.encode('utf-8'))
+    return uid.hexdigest()
+
+def get_event_uid(event):
+    stored_uid = str(event["UID"])
+    event_date = event["DTSTART"].dt
+    description = event["SUMMARY"]
+    new_uid = make_uid(event_date, description)
+    if stored_uid != new_uid:
+        LOGGER.warning(
+            "UID for {} is wrong, was {} should be {}.".format(
+                description,
+                stored_uid,
+                new_uid))
+
+    return new_uid
+
+def get_known_event_uids(cal):
+    seen = set()
+
+    for e in cal.walk():
+        if e.has_key("UID"):
+            seen.add(get_event_uid(e))
+
+    return seen
+
+def add_unique_event(cal, event):
+    known_uids = get_known_event_uids(cal)
+    uid = get_event_uid(event)
+
+    if uid not in known_uids:
+        cal.add_component(event)
 
 if __name__ == '__main__':
     try:
