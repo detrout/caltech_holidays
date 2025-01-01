@@ -51,7 +51,7 @@ def main(cmdline=None):
         event_count += 1
         add_unique_event(cal, make_event(date, description, dtstamp))
 
-    if args.icalendar:
+    if not args.dry_run:
         with open(args.icalendar, 'wb') as outstream:
             outstream.write(cal.to_ical())
 
@@ -151,6 +151,8 @@ def create_or_load_icalendar(filename=None):
 
 def make_parser():
     parser = argparse.ArgumentParser()
+    parser.add_argument("-n", "--dry-run", action="store_true", default=False,
+                        help="disable writing")
     parser.add_argument('--icalendar', default='caltech_holidays.ics',
                         help='Name to write icalendar file to')
     parser.add_argument('--display', default=False, action='store_true',
