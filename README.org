@@ -6,9 +6,26 @@ This program reads the page and writes out a iCalendar file.
 
 It's probably not useful unless you work at Caltech.
 
+* Changelog
+** 2025
+
+I got tired of the previous years vanishing, and now it will load the
+previous icalendar file and add the latest year to it. So you can see
+when the holidays were some time ago.
+
+I had to change how the UID is calculated to make it more
+deterministic, so now there's a warning for the old UIDs.
+
 * Usage
 
 #+BEGIN_EXAMPLE
 python3 caltech_holidays.py
 scp caltech_holidays.ics webserver:
 #+END_EXAMPLE
+
+Or the way I'm using it is in a cron file that runs once per month
+
+#+begin_example
+# m h  dom mon dow   command
+2 3 1 * * python3 ~/bin/caltech_holidays.py --icalendar ~/public_html/caltech-holidays.ics
+#+end_example
