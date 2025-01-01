@@ -42,7 +42,15 @@ class TestCaltechHolidays(TestCase):
         self.assertEqual(entries[0].description, "New Year's Day")
         self.assertEqual(entries[1].date, date(2024, 1, 15))
         self.assertEqual(entries[1].description, "Martin Luther King")
-        
+
+    def test_get_table_personal_holiday(self):
+        testdata = ["<table><thead></thead><tbody>"]
+        testdata.append("<tr><td>13</td><td>-</td><td>-</td><td>Personal Holiday</td></tr>")
+        testdata.append("</tbody></table>")
+        tree = fromstring("\n".join(testdata))
+        entries = list(get_table_entries("2024", tree))
+
+        self.assertEqual(len(entries), 0)
 
     def test_get_year_from_header(self):
         testdata = "<h3>Caltech Holiday Observances for 2024</h3>"

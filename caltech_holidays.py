@@ -121,9 +121,9 @@ def get_table_entries(year, table):
         record = row.getchildren()
         if len(record) == 4:
             day = record[2].text_content().strip()
+            description = record[3].text_content().strip()
             LOGGER.debug('day: %s', day)
             if not day.startswith('-'):
-                description = record[3].text_content().strip()
                 LOGGER.debug('description: %s', description)
                 try:
                     # in case there's an overriden year
@@ -131,6 +131,8 @@ def get_table_entries(year, table):
                 except ValueError:
                     date = datetime.strptime(year + ' ' + day, '%Y %B %d').date()
                 yield Holiday(date, description)
+            elif description == "Personal Holiday":
+                pass
             else:
                 LOGGER.info('unrecognized calendar line: {}'.format(row.text_content()))
 
