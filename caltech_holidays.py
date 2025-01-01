@@ -132,7 +132,8 @@ def get_table_entries(year, table):
                     date = datetime.strptime(year + ' ' + day, '%Y %B %d').date()
                 yield Holiday(date, description)
             else:
-                LOGGER.info('unrecognized calendar line: {}'.format(row.text_content))
+                LOGGER.info('unrecognized calendar line: {}'.format(row.text_content()))
+
 
 def create_or_load_icalendar(filename=None):
     if filename is not None:
