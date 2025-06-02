@@ -84,7 +84,7 @@ def request_holiday_page():
 
 
 def get_calendar_entries(tree):
-    headers = tree.xpath('//h3')
+    headers = tree.xpath('//h2')
     LOGGER.debug('Found {} header tags'.format(len(headers)))
     for h in headers:
         year = get_year_from_header(h)
