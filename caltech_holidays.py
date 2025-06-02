@@ -59,7 +59,7 @@ def main(cmdline=None):
         print(display(cal).decode('utf-8'))
 
     if event_count == 0:
-        LOGGER.warn('No entries found')
+        LOGGER.warning('No entries found')
         return ERROR_NO_EVENTS
 
     return 0
